@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 app = FastAPI() 
 
-task = [  
+tasks = [  
      { "id" : 1, "title" : "GET", "completed" : False}, 
      { "id" : 2, "title" : "POST", "completed" : False} , 
      { "id" : 3, "title" : "PUT", "completed" : False} , 
@@ -22,13 +22,14 @@ async def health():
 
 @app.get("/tasks")
 async def get_tasks():
-    return task
+    return tasks
 
 @app.get("/tasks/{id}")
-async def get_task(id:int):
-    for task in task:
+async def get_task(id: int):
+
+    for task in tasks:
         if task["id"] == id:
             return task
-        return JSONResponse({"error" : "Task 99 not found"}, status_code = 404)
+    return JSONResponse({"error" : f"Task {id} not found"}, status_code = 404)
 
 
