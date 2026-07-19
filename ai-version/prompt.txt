@@ -1,0 +1,24 @@
+=========================================
+INITIAL PROMPT (Stage 7 - Initial Version)
+=========================================
+Hey! Can you build me a simple to-do list REST API in Python using FastAPI?
+
+I want to store tasks in memory (no databases or external files). Each task needs to have an id, a title, and a done boolean. Also, please seed the app with 3 sample tasks when it starts up.
+
+Here are the endpoints I need:
+- GET /tasks to retrieve all tasks.
+- GET /tasks/{id} to get a specific task by id (return 404 with {"error": "..."} if it's not found).
+- POST /tasks to create a task (make sure title is a non-empty string; if it's missing or empty, return 400 with {"error": "..."}).
+- PUT /tasks/{id} to update task title and done status. If the title is empty, return 400 with {"error": "..."}. If the ID doesn't exist, return 404.
+- DELETE /tasks/{id} to delete a task (returns 204. If not found, return 404).
+
+Make sure all validation or general error responses are returned in JSON format like {"error": "message"}. Oh, and make sure it has Swagger UI available at /docs. Keep the code simple and runnable in a single main.py file!
+
+=========================================
+REMATCH PROMPT (Stage 7 - Rematch Version)
+=========================================
+Hey, the code looks great but we need to tweak how errors and validation are handled.
+
+Right now, FastAPI's default request validation throws a 422 Unprocessable Entity and returns standard nested validation details. But I need all validation failures (e.g., if fields are missing in the request body, or have invalid types) to return a 400 Bad Request with the JSON format {"error": "detailed message"}.
+
+Could you register a custom exception handler for FastAPI's RequestValidationError so that any validation errors are automatically caught and returned as a 400 Bad Request with a clear message inside {"error": "..."}? Please make sure every other error response is also in {"error": "..."} format. Keep everything else in memory and running on /docs.
