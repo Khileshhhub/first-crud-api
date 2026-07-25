@@ -19,28 +19,30 @@ uvicorn main:app --reload
 ## 🗄️ Database Architecture & Storage (SQLite)
 
 ### Why SQLite Was Chosen
-* **Single File Storage:** The entire database is contained within a single file (`tasks.db`), eliminating the need for external database servers or complex network configurations.
-* **Zero Setup:** SQLite is built directly into Python's standard library (`sqlite3`). No database installation, user configuration, or daemon service is required.
-* **Data Persistence:** Unlike in-memory data structures, SQLite ensures that all task additions, updates, and deletions survive server restarts.
+
+- **Single File Storage:** The entire database is contained within a single file (`tasks.db`), eliminating the need for external database servers or complex network configurations.
+- **Zero Setup:** SQLite is built directly into Python's standard library (`sqlite3`). No database installation, user configuration, or daemon service is required.
+- **Data Persistence:** Unlike in-memory data structures, SQLite ensures that all task additions, updates, and deletions survive server restarts.
 
 ### Database Location & Version Control
-* **File Location:** The database file lives at `tasks.db` in the root directory of the project.
-* **Automatic Creation & Seeding:** When `main.py` starts, `database.py` checks for `tasks.db`. If the database or table does not exist, it creates `tasks.db` and the `tasks` table automatically, seeding it with 3 sample tasks.
-* **Git-Ignored:** `tasks.db` is explicitly listed in `.gitignore` so each clean clone starts fresh with the default seeded dataset.
+
+- **File Location:** The database file lives at `tasks.db` in the root directory of the project.
+- **Automatic Creation & Seeding:** When `main.py` starts, `database.py` checks for `tasks.db`. If the database or table does not exist, it creates `tasks.db` and the `tasks` table automatically, seeding it with 3 sample tasks.
+- **Git-Ignored:** `tasks.db` is explicitly listed in `.gitignore` so each clean clone starts fresh with the default seeded dataset.
 
 ---
 
 ## 🛣️ API Endpoints
 
-| Method | Endpoint | Description | Success Status | Error Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **GET** | `/` | Retrieve API metadata | `200 OK` | - |
-| **GET** | `/health` | Verify server health status | `200 OK` | - |
-| **GET** | `/tasks` | Retrieve all task list | `200 OK` | - |
-| **GET** | `/tasks/{id}` | Retrieve details of a specific task | `200 OK` | `404 Not Found` |
-| **POST** | `/tasks` | Create a new task (requires `title`) | `200 OK` | `400 Bad Request` |
-| **PUT** | `/tasks/{id}` | Update task title and completion status | `200 OK` | `400 Bad Request`, `404 Not Found` |
-| **DELETE** | `/tasks/{id}` | Delete a task | `204 No Content` | `404 Not Found` |
+| Method     | Endpoint      | Description                             | Success Status   | Error Status                       |
+| :--------- | :------------ | :-------------------------------------- | :--------------- | :--------------------------------- |
+| **GET**    | `/`           | Retrieve API metadata                   | `200 OK`         | -                                  |
+| **GET**    | `/health`     | Verify server health status             | `200 OK`         | -                                  |
+| **GET**    | `/tasks`      | Retrieve all task list                  | `200 OK`         | -                                  |
+| **GET**    | `/tasks/{id}` | Retrieve details of a specific task     | `200 OK`         | `404 Not Found`                    |
+| **POST**   | `/tasks`      | Create a new task (requires `title`)    | `200 OK`         | `400 Bad Request`                  |
+| **PUT**    | `/tasks/{id}` | Update task title and completion status | `200 OK`         | `400 Bad Request`, `404 Not Found` |
+| **DELETE** | `/tasks/{id}` | Delete a task                           | `204 No Content` | `404 Not Found`                    |
 
 ---
 
@@ -74,22 +76,38 @@ FastAPI automatically generates interactive Swagger documentation. You can acces
 Changes made directly in **DB Browser for SQLite** are immediately reflected in the API without requiring a server restart.
 
 ### Screenshot & Example SQL Query
-* **Query Executed in Stage 4:**
+
+- **Query Executed in Stage 4:**
   ```sql
   DELETE FROM tasks
   WHERE done = 1;
   ```
-* **Result / What it Returned:**
+- **Result / What it Returned:**
   `Execution finished without errors. Result: query executed successfully. Took 3ms, 1 rows affected.`
   This query deleted all completed task rows directly from the `tasks` database table, and subsequent `GET /tasks` requests immediately reflected the updated dataset without needing an API server restart.
 
 ![DB Browser Execution](db_screenshots/image.png)
+
+## PostgreSQL
+
+Start PostgreSQL using Docker:
+
+```bash
+docker run --name taskdb -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=tasks -p 5432:5432 -v taskdata:/var/lib/postgresql/data -d postgres
+```
+
+Open the PostgreSQL shell:
+
+```bash
+docker exec -it taskdb psql -U postgres -d tasks
+```
 
 ---
 
 ## 🤖 AI vs Me
 
 ### 📝 The Initial Prompt (Written from Memory)
+
 ```text
 Hey! Can you build me a simple to-do list REST API in Python using FastAPI?
 
@@ -106,6 +124,7 @@ Make sure all validation or general error responses are returned in JSON format 
 ```
 
 ### 🔍 Concrete Differences Found
+
 1. **Consistently structured task schema**: The hand-built codebase had a major structural bug where the seeded database used `completed: bool` as the status key, but `update_task` checked for `updated_task.done`. Since `TaskUpdate` only had `completed`, attempting to update a task would crash with an `AttributeError`. The AI version cleanly defined and used `done` everywhere, avoiding this runtime bug.
 2. **Error response payload format**: The AI version initially used FastAPI's built-in `HTTPException`, which returned error payloads in the format `{"detail": "..."}` instead of the requested `{"error": "..."}`.
 3. **Invalid body status code (422 vs 400)**: Sending a payload with a missing title to the AI's `POST /tasks` endpoint returned a `422 Unprocessable Content` status code (due to default FastAPI/Pydantic validation) rather than the required `400 Bad Request`.
@@ -115,19 +134,24 @@ Make sure all validation or general error responses are returned in JSON format 
 ### ❓ Questions & Answers
 
 #### 1. What did the AI do better — and do you understand its version well enough to explain it?
+
 The AI correctly aligned the schemas and consistently used the variable `done` for the task completion status across all data models and business logic. It also used FastAPI's `response_model` argument in the decorators to automatically serialize and filter the returned list and task dictionaries, which is cleaner and safer than raw dictionary returns.
 
 #### 2. What did it get wrong or quietly ignore from your prompt?
+
 - It ignored the error response shape constraint: it returned `{"detail": "..."}` instead of `{"error": "..."}`.
 - It ignored returning a `400` status code for missing schema fields, defaulting instead to FastAPI's standard `422` validation failure response.
 
 #### 3. What did your prompt forget to specify — and what did the AI silently decide for you?
+
 The prompt forgot to explicitly describe how to handle FastAPI's default request validation exception (`RequestValidationError`). Consequently, the AI silently decided to let FastAPI's default exception handlers catch the validation errors, producing a `422 Unprocessable Content` instead of the expected `400 Bad Request`.
 
 ---
 
 ### 🔄 The Rematch Prompt & What Changed
+
 To fix the differences, the prompt was updated to explicitly override FastAPI's default handlers:
+
 ```text
 Hey, the code looks great but we need to tweak how errors and validation are handled.
 
@@ -135,4 +159,5 @@ Right now, FastAPI's default request validation throws a 422 Unprocessable Entit
 
 Could you register a custom exception handler for FastAPI's RequestValidationError so that any validation errors are automatically caught and returned as a 400 Bad Request with a clear message inside {"error": "..."}? Please make sure every other error response is also in {"error": "..."} format. Keep everything else in memory and running on /docs.
 ```
+
 **In the rematch, the AI successfully registered a custom exception handler for `RequestValidationError` to capture default validation failures and return `400 Bad Request` with the `{"error": "..."}` JSON structure.**
