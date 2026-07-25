@@ -3,14 +3,14 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from fastapi import *
+from database import initialize_db
 
-app = FastAPI() 
+app = FastAPI()
 
+initialize_db()
 
-tasks = [  
-     { "id" : 1, "title" : "Buy gold", "completed" : False}, 
-     { "id" : 2, "title" : "Finish homework", "completed" : False} , 
-     { "id" : 3, "title" : "Do laundry", "completed" : False}  ]
+tasks = [
+]
 
 class TaskCreate(BaseModel):
     title: str
