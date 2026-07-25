@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastapi import *
 from database import initialize_db
+from database import get_connection
+from fastapi import HTTPException
 
 app = FastAPI()
 
@@ -32,15 +34,32 @@ async def health():
 
 @app.get("/tasks")
 async def get_tasks():
-    return tasks
+    con = get_connection()
+    cur = con.cursor()
+    cur.execute("SELECT * FROM tasks")
+    rows = cur.fetchall()
+
+    cur.close
+    return [dict(row) for row in rows]
 
 @app.get("/tasks/{id}")
 async def get_task(id: int):
+    con = get_connection()
+    cur = con.cursor()
 
-    for task in tasks:
-        if task["id"] == id:
-            return task
-    return JSONResponse({"error" : f"Task {id} not found"}, status_code = 404)
+    cur.execute(
+        "SELECT * FROM tasks WHERE id=?",(id,)
+    )
+    row = cur.fetchone()
+    con.close()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "Task not found"}
+        )
+
+    return dict(row)
 
 @app.post("/tasks")
 async def create_task(task: TaskCreate):
