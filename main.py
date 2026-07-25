@@ -3,13 +3,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from fastapi import *
-from database import initialize_db
+from database import initialize_database
 from database import get_connection
 from fastapi import HTTPException
 
 app = FastAPI()
 
-initialize_db()
+initialize_database()
 
 tasks = [
 ]

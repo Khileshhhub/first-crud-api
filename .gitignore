@@ -1,27 +1,33 @@
-# Virtual Environment
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Virtual Environments
 .venv/
 venv/
+env/
 ENV/
 
-# Python Cache
+# Python Cache & Bytecode
 __pycache__/
 *.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 
-# SQLite Database (auto-generated on startup so clone starts fresh)
-tasks.db
+# Databases
+*.db
+*.sqlite
+*.sqlite3
 
-# Python
-venv/
-__pycache__/
-*.pyc
-
-# Environment
-.env
-
-# VS Code
-.vscode/
-
-
-# IDE settings
+# IDEs & Editors
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
