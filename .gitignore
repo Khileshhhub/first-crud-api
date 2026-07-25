@@ -10,6 +10,18 @@ __pycache__/
 # SQLite Database (auto-generated on startup so clone starts fresh)
 tasks.db
 
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# VS Code
+.vscode/
+
+
 # IDE settings
 .vscode/
 .idea/
