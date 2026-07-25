@@ -67,15 +67,22 @@ async def create_task(task: TaskCreate):
     
     if not title :
         return JSONResponse(content={"error" : "Title is required"}, status_code = 400)
-    
-    next_id = (max([task["id"] for task in tasks] + [0])) + 1
-    new_task = {
-        "id": next_id,
+
+    con = get_connection()
+    cur = con.cursor()
+
+    cur.execute(
+        "INSERT INTO tasks (title, done) VALUES (?,?)", (title, False)
+    )
+    con.commit()
+    new_id = cur.lastrowid
+    con.close()
+
+    return {
+        "id": new_id,
         "title": title,
-        "completed":False
+        "done": False
     }
-    tasks.append(new_task)
-    return new_task
 
 
 
