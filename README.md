@@ -1,20 +1,32 @@
 # FastAPI Task CRUD API
 
-A simple, lightweight RESTful API built with **FastAPI** to manage a to-do list. The application stores tasks in memory (no external database or files required) and provides full CRUD capabilities, input validation, and automatic Swagger documentation.
+A simple, lightweight RESTful API built with **FastAPI** to manage a to-do list. The application uses **SQLite** for persistent file storage with automatic table initialization and seeding, providing full CRUD capabilities, input validation, and automatic Swagger documentation.
 
 ---
 
-## 🛠️ Installation & Quick Start
+## 🛠️ Quick Start
 
-To install dependencies and run the application in a single step, execute the following command in your terminal:
+Run the following **single command** in your terminal to start the API:
 
 ```bash
-# On Windows (PowerShell):
-python -m venv .venv; .venv\Scripts\activate; pip install fastapi uvicorn; uvicorn main:app --reload
-
-# On macOS / Linux (bash/zsh):
-python3 -m venv .venv && source .venv/bin/activate && pip install fastapi uvicorn && uvicorn main:app --reload
+uvicorn main:app --reload
 ```
+
+> **Zero Setup Required:** Upon server startup, the database file `tasks.db` is created automatically, initialized with the `tasks` table, and seeded with 3 example tasks (`Buy gold`, `Finish homework`, `Do laundry`).
+
+---
+
+## 🗄️ Database Architecture & Storage (SQLite)
+
+### Why SQLite Was Chosen
+* **Single File Storage:** The entire database is contained within a single file (`tasks.db`), eliminating the need for external database servers or complex network configurations.
+* **Zero Setup:** SQLite is built directly into Python's standard library (`sqlite3`). No database installation, user configuration, or daemon service is required.
+* **Data Persistence:** Unlike in-memory data structures, SQLite ensures that all task additions, updates, and deletions survive server restarts.
+
+### Database Location & Version Control
+* **File Location:** The database file lives at `tasks.db` in the root directory of the project.
+* **Automatic Creation & Seeding:** When `main.py` starts, `database.py` checks for `tasks.db`. If the database or table does not exist, it creates `tasks.db` and the `tasks` table automatically, seeding it with 3 sample tasks.
+* **Git-Ignored:** `tasks.db` is explicitly listed in `.gitignore` so each clean clone starts fresh with the default seeded dataset.
 
 ---
 
@@ -44,7 +56,7 @@ server: uvicorn
 content-length: 148
 content-type: application/json
 
-[{"id":1,"title":"Buy gold","completed":false},{"id":2,"title":"Finish homework","completed":false},{"id":3,"title":"Do laundry","completed":false}]
+[{"id":1,"title":"Buy gold","done":false},{"id":2,"title":"Finish homework","done":false},{"id":3,"title":"Do laundry","done":false}]
 ```
 
 ---
@@ -57,17 +69,19 @@ FastAPI automatically generates interactive Swagger documentation. You can acces
 
 ---
 
-## 🗄️ Live Database Changes (DB Browser for SQLite)
+## 🔍 Live Database Changes (DB Browser for SQLite)
 
 Changes made directly in **DB Browser for SQLite** are immediately reflected in the API without requiring a server restart.
 
-* **Query Executed:**
+### Screenshot & Example SQL Query
+* **Query Executed in Stage 4:**
   ```sql
   DELETE FROM tasks
   WHERE done = 1;
   ```
 * **Result / What it Returned:**
-  The query executed successfully in 3 ms, affecting 1 row (`Took 3ms, 1 rows affected`), which deleted all completed tasks directly from the `tasks` table and immediately updated what the API returned.
+  `Execution finished without errors. Result: query executed successfully. Took 3ms, 1 rows affected.`
+  This query deleted all completed task rows directly from the `tasks` database table, and subsequent `GET /tasks` requests immediately reflected the updated dataset without needing an API server restart.
 
 ![DB Browser Execution](db_screenshots/image.png)
 
