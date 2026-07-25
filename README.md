@@ -1,163 +1,124 @@
-# FastAPI Task CRUD API
+# FastAPI CRUD API with PostgreSQL
 
-A simple, lightweight RESTful API built with **FastAPI** to manage a to-do list. The application uses **SQLite** for persistent file storage with automatic table initialization and seeding, providing full CRUD capabilities, input validation, and automatic Swagger documentation.
+## Overview
+
+A REST API built with FastAPI and PostgreSQL. The application is fully containerized using Docker Compose and supports complete CRUD operations for tasks.
+
+## Tech Stack
+
+- FastAPI
+- PostgreSQL
+- Psycopg
+- Docker
+- Docker Compose
+- Python 3.12
 
 ---
 
-## 🛠️ Quick Start
+## Run the Project
 
-Run the following **single command** in your terminal to start the API:
+Clone the repository:
 
 ```bash
-uvicorn main:app --reload
+git clone <YOUR_REPOSITORY_URL>
+cd first-crud-api
 ```
 
-> **Zero Setup Required:** Upon server startup, the database file `tasks.db` is created automatically, initialized with the `tasks` table, and seeded with 3 example tasks (`Buy gold`, `Finish homework`, `Do laundry`).
-
----
-
-## 🗄️ Database Architecture & Storage (SQLite)
-
-### Why SQLite Was Chosen
-
-- **Single File Storage:** The entire database is contained within a single file (`tasks.db`), eliminating the need for external database servers or complex network configurations.
-- **Zero Setup:** SQLite is built directly into Python's standard library (`sqlite3`). No database installation, user configuration, or daemon service is required.
-- **Data Persistence:** Unlike in-memory data structures, SQLite ensures that all task additions, updates, and deletions survive server restarts.
-
-### Database Location & Version Control
-
-- **File Location:** The database file lives at `tasks.db` in the root directory of the project.
-- **Automatic Creation & Seeding:** When `main.py` starts, `database.py` checks for `tasks.db`. If the database or table does not exist, it creates `tasks.db` and the `tasks` table automatically, seeding it with 3 sample tasks.
-- **Git-Ignored:** `tasks.db` is explicitly listed in `.gitignore` so each clean clone starts fresh with the default seeded dataset.
-
----
-
-## 🛣️ API Endpoints
-
-| Method     | Endpoint      | Description                             | Success Status   | Error Status                       |
-| :--------- | :------------ | :-------------------------------------- | :--------------- | :--------------------------------- |
-| **GET**    | `/`           | Retrieve API metadata                   | `200 OK`         | -                                  |
-| **GET**    | `/health`     | Verify server health status             | `200 OK`         | -                                  |
-| **GET**    | `/tasks`      | Retrieve all task list                  | `200 OK`         | -                                  |
-| **GET**    | `/tasks/{id}` | Retrieve details of a specific task     | `200 OK`         | `404 Not Found`                    |
-| **POST**   | `/tasks`      | Create a new task (requires `title`)    | `200 OK`         | `400 Bad Request`                  |
-| **PUT**    | `/tasks/{id}` | Update task title and completion status | `200 OK`         | `400 Bad Request`, `404 Not Found` |
-| **DELETE** | `/tasks/{id}` | Delete a task                           | `204 No Content` | `404 Not Found`                    |
-
----
-
-## 💻 Sample API Request & Response (`curl -i`)
-
-Here is an example request to fetch all tasks:
-
-```http
-$ curl -i http://127.0.0.1:8000/tasks
-HTTP/1.1 200 OK
-date: Sun, 19 Jul 2026 16:57:36 GMT
-server: uvicorn
-content-length: 148
-content-type: application/json
-
-[{"id":1,"title":"Buy gold","done":false},{"id":2,"title":"Finish homework","done":false},{"id":3,"title":"Do laundry","done":false}]
-```
-
----
-
-## 📸 Swagger UI Documentation
-
-FastAPI automatically generates interactive Swagger documentation. You can access it locally at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
-
-![Swagger UI](screenshots/swagger.png)
-
----
-
-## 🔍 Live Database Changes (DB Browser for SQLite)
-
-Changes made directly in **DB Browser for SQLite** are immediately reflected in the API without requiring a server restart.
-
-### Screenshot & Example SQL Query
-
-- **Query Executed in Stage 4:**
-  ```sql
-  DELETE FROM tasks
-  WHERE done = 1;
-  ```
-- **Result / What it Returned:**
-  `Execution finished without errors. Result: query executed successfully. Took 3ms, 1 rows affected.`
-  This query deleted all completed task rows directly from the `tasks` database table, and subsequent `GET /tasks` requests immediately reflected the updated dataset without needing an API server restart.
-
-![DB Browser Execution](db_screenshots/image.png)
-
-## PostgreSQL
-
-Start PostgreSQL using Docker:
+Copy the environment file:
 
 ```bash
-docker run --name taskdb -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=tasks -p 5432:5432 -v taskdata:/var/lib/postgresql/data -d postgres
+cp .env.example .env
 ```
 
-Open the PostgreSQL shell:
+Start everything:
 
 ```bash
-docker exec -it taskdb psql -U postgres -d tasks
+docker compose up
+```
+
+The API will be available at:
+
+```
+http://localhost:3000
+```
+
+Swagger UI:
+
+```
+http://localhost:3000/docs
 ```
 
 ---
 
-## 🤖 AI vs Me
+## Environment Variables
 
-### 📝 The Initial Prompt (Written from Memory)
+Create a `.env` file using `.env.example`.
 
-```text
-Hey! Can you build me a simple to-do list REST API in Python using FastAPI?
+Example:
 
-I want to store tasks in memory (no databases or external files). Each task needs to have an id, a title, and a done boolean. Also, please seed the app with 3 sample tasks when it starts up.
-
-Here are the endpoints I need:
-- GET /tasks to retrieve all tasks.
-- GET /tasks/{id} to get a specific task by id (return 404 with {"error": "..."} if it's not found).
-- POST /tasks to create a task (make sure title is a non-empty string; if it's missing or empty, return 400 with {"error": "..."}).
-- PUT /tasks/{id} to update task title and done status. If the title is empty, return 400 with {"error": "..."}. If the ID doesn't exist, return 404.
-- DELETE /tasks/{id} to delete a task (returns 204. If not found, return 404).
-
-Make sure all validation or general error responses are returned in JSON format like {"error": "message"}. Oh, and make sure it has Swagger UI available at /docs. Keep the code simple and runnable in a single main.py file!
+```env
+DATABASE_URL=postgres://postgres:dev@db:5432/tasks
 ```
-
-### 🔍 Concrete Differences Found
-
-1. **Consistently structured task schema**: The hand-built codebase had a major structural bug where the seeded database used `completed: bool` as the status key, but `update_task` checked for `updated_task.done`. Since `TaskUpdate` only had `completed`, attempting to update a task would crash with an `AttributeError`. The AI version cleanly defined and used `done` everywhere, avoiding this runtime bug.
-2. **Error response payload format**: The AI version initially used FastAPI's built-in `HTTPException`, which returned error payloads in the format `{"detail": "..."}` instead of the requested `{"error": "..."}`.
-3. **Invalid body status code (422 vs 400)**: Sending a payload with a missing title to the AI's `POST /tasks` endpoint returned a `422 Unprocessable Content` status code (due to default FastAPI/Pydantic validation) rather than the required `400 Bad Request`.
 
 ---
 
-### ❓ Questions & Answers
+## API Endpoints
 
-#### 1. What did the AI do better — and do you understand its version well enough to explain it?
-
-The AI correctly aligned the schemas and consistently used the variable `done` for the task completion status across all data models and business logic. It also used FastAPI's `response_model` argument in the decorators to automatically serialize and filter the returned list and task dictionaries, which is cleaner and safer than raw dictionary returns.
-
-#### 2. What did it get wrong or quietly ignore from your prompt?
-
-- It ignored the error response shape constraint: it returned `{"detail": "..."}` instead of `{"error": "..."}`.
-- It ignored returning a `400` status code for missing schema fields, defaulting instead to FastAPI's standard `422` validation failure response.
-
-#### 3. What did your prompt forget to specify — and what did the AI silently decide for you?
-
-The prompt forgot to explicitly describe how to handle FastAPI's default request validation exception (`RequestValidationError`). Consequently, the AI silently decided to let FastAPI's default exception handlers catch the validation errors, producing a `422 Unprocessable Content` instead of the expected `400 Bad Request`.
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| GET | / | API information |
+| GET | /health | Health check |
+| GET | /tasks | List all tasks |
+| GET | /tasks/{id} | Get one task |
+| POST | /tasks | Create task |
+| PUT | /tasks/{id} | Update task |
+| DELETE | /tasks/{id} | Delete task |
 
 ---
 
-### 🔄 The Rematch Prompt & What Changed
+## Example curl
 
-To fix the differences, the prompt was updated to explicitly override FastAPI's default handlers:
-
-```text
-Hey, the code looks great but we need to tweak how errors and validation are handled.
-
-Right now, FastAPI's default request validation throws a 422 Unprocessable Entity and returns standard nested validation details. But I need all validation failures (e.g., if fields are missing in the request body, or have invalid types) to return a 400 Bad Request with the JSON format {"error": "detailed message"}.
-
-Could you register a custom exception handler for FastAPI's RequestValidationError so that any validation errors are automatically caught and returned as a 400 Bad Request with a clear message inside {"error": "..."}? Please make sure every other error response is also in {"error": "..."} format. Keep everything else in memory and running on /docs.
+```bash
+curl -i -X POST http://localhost:3000/tasks \
+-H "Content-Type: application/json" \
+-d "{\"title\":\"Learn Docker\"}"
 ```
 
-**In the rematch, the AI successfully registered a custom exception handler for `RequestValidationError` to capture default validation failures and return `400 Bad Request` with the `{"error": "..."}` JSON structure.**
+Example response:
+
+```
+HTTP/1.1 201 Created
+
+{
+  "id": 1,
+  "title": "Learn Docker",
+  "done": false
+}
+```
+
+---
+
+## Database Screenshot
+
+Add a screenshot showing:
+
+- `\dt`
+- `SELECT * FROM tasks;`
+
+or a screenshot from DBeaver, pgAdmin, or TablePlus.
+
+---
+
+## Docker
+
+Start:
+
+```bash
+docker compose up
+```
+
+Stop:
+
+```bash
+docker compose down
+```
