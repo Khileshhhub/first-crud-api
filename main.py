@@ -18,7 +18,7 @@ class TaskCreate(BaseModel):
     title: str
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
-    completed: Optional[bool] = None
+    done: Optional[bool] = None
 
 
 @app.get("/")
@@ -89,42 +89,59 @@ async def create_task(task: TaskCreate):
 @app.put("/tasks/{id}")
 def update_task(id: int, updated_task: TaskUpdate):
 
-    for task in tasks:
+    if not updated_task.title.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Title cannot be empty"}
+        )
 
-        if task["id"] == id:
+    con = get_connection()
+    cur = con.cursor()
 
-            if updated_task.title is not None:
-
-                if updated_task.title.strip() == "":
-                    return JSONResponse(
-                        status_code=400,
-                        content={"error": "Title cannot be empty"}
-                    )
-
-                task["title"] = updated_task.title.strip()
-
-            if updated_task.done is not None:
-                task["done"] = updated_task.done
-
-            return task
-
-    return JSONResponse(
-        status_code=404,
-        content={"error": f"Task {id} not found"}
+    cur.execute(
+        "UPDATE tasks SET title=?, done = ? WHERE id = ?",
+        (updated_task.title, updated_task.done, id)
     )
+
+    con.commit()
+    if cur.rowcount == 0:
+        con.close()
+        raise HTTPException(
+            status_code=404, 
+            detail={"error" : "Task not found"}
+        )
+    
+    cur.execute(
+        "SELECT * FROM tasks WHERE id=?",(id,)
+    )
+    updated_task = dict(cur.fetchone())
+    con.close()
+
+    return updated_task
+
 
 
 @app.delete("/tasks/{id}", status_code=204)
 async def delete_task(id: int):
-    for index, task in enumerate(tasks):
-        if task["id"] == id:
-            tasks.pop(index)
-            return Response(status_code=204)
 
-    return JSONResponse(
-        status_code=404,
-        content={"error": f"Task {id} not found"}
+    con = get_connection()
+    cur = con.cursor()
+
+    cur.execute(
+        "DELETE FROM tasks WHERE id=?",(id,)
     )
+
+    con.commit()
+
+    if cur.rowcount == 0:
+        con.close()
+        raise HTTPException(
+            status_code=404, 
+            detail={"error" : "Task not found"}
+        )
+
+    con.close()
+    return Response(status_code=204)
 
     
 
