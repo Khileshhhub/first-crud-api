@@ -57,6 +57,22 @@ FastAPI automatically generates interactive Swagger documentation. You can acces
 
 ---
 
+## 🗄️ Live Database Changes (DB Browser for SQLite)
+
+Changes made directly in **DB Browser for SQLite** are immediately reflected in the API without requiring a server restart.
+
+* **Query Executed:**
+  ```sql
+  DELETE FROM tasks
+  WHERE done = 1;
+  ```
+* **Result / What it Returned:**
+  The query executed successfully in 3 ms, affecting 1 row (`Took 3ms, 1 rows affected`), which deleted all completed tasks directly from the `tasks` table and immediately updated what the API returned.
+
+![DB Browser Execution](db_screenshots/image.png)
+
+---
+
 ## 🤖 AI vs Me
 
 ### 📝 The Initial Prompt (Written from Memory)
