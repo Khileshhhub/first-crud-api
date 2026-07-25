@@ -3,8 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from fastapi import *
-from database import initialize_database
-from database import get_connection
+from database import get_connection, initialize_database
 from fastapi import HTTPException
 
 app = FastAPI()
@@ -34,33 +33,49 @@ async def health():
 
 @app.get("/tasks")
 async def get_tasks():
-    con = get_connection()
-    cur = con.cursor()
-    cur.execute("SELECT * FROM tasks")
-    rows = cur.fetchall()
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, title, done
+                FROM tasks
+                ORDER BY id
+            """)
 
-    cur.close
-    return [dict(row) for row in rows]
+            rows = cursor.fetchall()
 
-@app.get("/tasks/{id}")
-async def get_task(id: int):
-    con = get_connection()
-    cur = con.cursor()
+    return [
+        {
+            "id": row[0],
+            "title": row[1],
+            "done": row[2]
+        }
+        for row in rows
+    ]
 
-    cur.execute(
-        "SELECT * FROM tasks WHERE id=?",(id,)
-    )
-    row = cur.fetchone()
-    con.close()
+
+@app.get("/tasks/{task_id}")
+async def get_task(task_id: int):
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, title, done
+                FROM tasks
+                WHERE id = %s
+            """, (task_id,))
+
+            row = cursor.fetchone()
 
     if row is None:
-        raise HTTPException(
+        return JSONResponse(
             status_code=404,
-            detail={"error": "Task not found"}
+            content={"error": "Task not found"}
         )
 
-    return dict(row)
-
+    return {
+        "id": row[0],
+        "title": row[1],
+        "done": row[2]
+    }
 @app.post("/tasks")
 async def create_task(task: TaskCreate):
     title = task.title.strip()
