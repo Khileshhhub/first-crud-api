@@ -135,6 +135,28 @@ curl -i http://localhost:3000/tasks
 
 ---
 
+## 🐳 Docker Containers & Setup Screenshots
+
+The application runs seamlessly in Docker containers using `docker compose`.
+
+### Container Status & Screenshots
+
+![Docker Containers Status](docker-images/image.png)
+
+![Docker Compose Services Running](docker-images/image%20copy.png)
+
+### Docker Management Commands
+
+| Action | Command |
+| :--- | :--- |
+| **Start Services** | `docker compose up -d` |
+| **View Service Logs** | `docker compose logs -f` |
+| **Stop Services** | `docker compose down` |
+| **Stop & Remove Volumes** | `docker compose down -v` |
+| **Rebuild Containers** | `docker compose up --build` |
+
+---
+
 ## 📸 Interactive API Documentation (Swagger UI)
 
 FastAPI automatically generates interactive API documentation. Explore and test endpoints live via the browser at `http://localhost:3000/docs`.
@@ -193,15 +215,3 @@ SELECT * FROM tasks;
 Below is a live database state verification screenshot showing active records and SQL operations:
 
 ![Database State Inspection](db_screenshots/image.png)
-
----
-
-## 🐳 Docker Management Commands
-
-| Action | Command |
-| :--- | :--- |
-| **Start Services** | `docker compose up -d` |
-| **View Service Logs** | `docker compose logs -f` |
-| **Stop Services** | `docker compose down` |
-| **Stop & Remove Volumes** | `docker compose down -v` |
-| **Rebuild Containers** | `docker compose up --build` |
