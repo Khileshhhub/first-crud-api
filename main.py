@@ -1,20 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
-from fastapi import *
+
 from database import get_connection, initialize_database
-from fastapi import HTTPException
 
 app = FastAPI()
 
 initialize_database()
 
-tasks = [
-]
-
+tasks = []
 class TaskCreate(BaseModel):
     title: str
+
+
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     done: Optional[bool] = None
@@ -22,26 +21,28 @@ class TaskUpdate(BaseModel):
 
 @app.get("/")
 async def home():
-    return { 
-        "name": "Task API", 
-        "version": "1.0", 
-        "endpoints": ["/tasks"] }
+    return {
+        "name": "Task API",
+        "version": "1.0",
+        "endpoints": ["/tasks"]
+    }
+
 
 @app.get("/health")
 async def health():
-    return JSONResponse({"status" : "ok"})
+    return {"status": "ok"}
+
 
 @app.get("/tasks")
 async def get_tasks():
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("""
+    with get_connection() as con:
+        with con.cursor() as cur:
+            cur.execute("""
                 SELECT id, title, done
                 FROM tasks
                 ORDER BY id
             """)
-
-            rows = cursor.fetchall()
+            rows = cur.fetchall()
 
     return [
         {
@@ -55,15 +56,15 @@ async def get_tasks():
 
 @app.get("/tasks/{task_id}")
 async def get_task(task_id: int):
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("""
+    with get_connection() as con:
+        with con.cursor() as cur:
+            cur.execute("""
                 SELECT id, title, done
                 FROM tasks
                 WHERE id = %s
             """, (task_id,))
 
-            row = cursor.fetchone()
+            row = cur.fetchone()
 
     if row is None:
         return JSONResponse(
@@ -76,98 +77,91 @@ async def get_task(task_id: int):
         "title": row[1],
         "done": row[2]
     }
-@app.post("/tasks")
+
+
+@app.post("/tasks", status_code=201)
 async def create_task(task: TaskCreate):
-    title = task.title.strip()
-    
-    if not title :
-        return JSONResponse(content={"error" : "Title is required"}, status_code = 400)
+    if not task.title.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Title is required"}
+        )
 
-    con = get_connection()
-    cur = con.cursor()
+    with get_connection() as con:
+        with con.cursor() as cur:
+            cur.execute("""
+                INSERT INTO tasks (title, done)
+                VALUES (%s, %s)
+                RETURNING id, title, done
+            """, (task.title, False))
 
-    cur.execute(
-        "INSERT INTO tasks (title, done) VALUES (?,?)", (title, False)
-    )
-    con.commit()
-    new_id = cur.lastrowid
-    con.close()
+            row = cur.fetchone()
+
+        con.commit()
 
     return {
-        "id": new_id,
-        "title": title,
-        "done": False
+        "id": row[0],
+        "title": row[1],
+        "done": row[2]
     }
 
 
-
-@app.put("/tasks/{id}")
-def update_task(id: int, updated_task: TaskUpdate):
-
-    if not updated_task.title.strip():
+@app.put("/tasks/{task_id}")
+async def update_task(task_id: int, task: TaskUpdate):
+    if task.title is None or not task.title.strip():
         return JSONResponse(
             status_code=400,
-            content={"error": "Title cannot be empty"}
+            content={"error": "Title is required"}
         )
 
-    con = get_connection()
-    cur = con.cursor()
+    if task.done is None:
+        task.done = False
 
-    cur.execute(
-        "UPDATE tasks SET title=?, done = ? WHERE id = ?",
-        (updated_task.title, updated_task.done, id)
-    )
+    with get_connection() as con:
+        with con.cursor() as cur:
+            cur.execute("""
+                UPDATE tasks
+                SET title = %s,
+                    done = %s
+                WHERE id = %s
+                RETURNING id, title, done
+            """, (task.title, task.done, task_id))
 
-    con.commit()
-    if cur.rowcount == 0:
-        con.close()
-        raise HTTPException(
-            status_code=404, 
-            detail={"error" : "Task not found"}
-        )
-    
-    cur.execute(
-        "SELECT * FROM tasks WHERE id=?",(id,)
-    )
-    updated_task = dict(cur.fetchone())
-    con.close()
+            row = cur.fetchone()
 
-    return updated_task
+        con.commit()
 
-
-
-@app.delete("/tasks/{id}", status_code=204)
-async def delete_task(id: int):
-
-    con = get_connection()
-    cur = con.cursor()
-
-    cur.execute(
-        "DELETE FROM tasks WHERE id=?",(id,)
-    )
-
-    con.commit()
-
-    if cur.rowcount == 0:
-        con.close()
-        raise HTTPException(
-            status_code=404, 
-            detail={"error" : "Task not found"}
+    if row is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Task not found"}
         )
 
-    con.close()
+    return {
+        "id": row[0],
+        "title": row[1],
+        "done": row[2]
+    }
+
+
+@app.delete("/tasks/{task_id}", status_code=204)
+async def delete_task(task_id: int):
+    with get_connection() as con:
+        with con.cursor() as cur:
+            cur.execute("""
+                DELETE FROM tasks
+                WHERE id = %s
+                RETURNING id
+            """, (task_id,))
+
+            row = cur.fetchone()
+
+        con.commit()
+
+    if row is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Task not found"}
+        )
+
     return Response(status_code=204)
-
-    
-
-
-
-                
-    
-            
-            
-
-
-
-                
-    

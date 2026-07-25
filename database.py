@@ -13,9 +13,9 @@ def get_connection():
 
 
 def initialize_database():
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("""
+    with get_connection() as con:
+        with con.cursor() as cur:
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
                     id SERIAL PRIMARY KEY,
                     title TEXT NOT NULL,
@@ -23,11 +23,11 @@ def initialize_database():
                 )
             """)
 
-            cursor.execute("SELECT COUNT(*) FROM tasks")
-            count = cursor.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM tasks")
+            count = cur.fetchone()[0]
 
             if count == 0:
-                cursor.executemany(
+                cur.executemany(
                     """
                     INSERT INTO tasks (title, done)
                     VALUES (%s, %s)
@@ -39,4 +39,4 @@ def initialize_database():
                     ],
                 )
 
-        conn.commit()
+        con.commit()
